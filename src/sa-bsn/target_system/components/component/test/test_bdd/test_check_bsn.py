@@ -5,6 +5,7 @@ import rospy
 import rosnode
 from parsers import process_real_time_topics, capture_topic_data
 from asserts import node_is_active, bool_node_is_active
+from conftest import _sensor_topic_info, step_when_sensor_reports_new_reading
 
 scenarios("./features/check_bsn.feature")
 
@@ -56,35 +57,6 @@ def bodyhub_not_process(context):
         for key in ['trm_risk', 'ecg_risk', 'oxi_risk', 'abps_risk', 'abpd_risk', 'glc_risk', 'trm_data', 'ecg_data', 'oxi_data', 'abps_data', 'abpd_data', 'glc_data']:
             # Assert that the target system data for risks is empty or doesn't contain any values
             assert not target_system_data[key], "Expected no data for {}, but found: {}".format(key, target_system_data[key])
-
-SENSOR_TOPIC_INFO = {
-    'g3t1_1': {'topic': '/oximeter_data',    'data_key': 'oxi_data',  'risk_key': 'oxi_risk'},
-    'g3t1_2': {'topic': '/ecg_data',          'data_key': 'ecg_data', 'risk_key': 'ecg_risk'},
-    'g3t1_3': {'topic': '/thermometer_data',  'data_key': 'trm_data', 'risk_key': 'trm_risk'},
-    'g3t1_4': {'topic': '/abps_data',         'data_key': 'abps_data', 'risk_key': 'abps_risk'},
-    'g3t1_5': {'topic': '/abpd_data',         'data_key': 'abpd_data', 'risk_key': 'abpd_risk'},
-    'g3t1_6': {'topic': '/glucosemeter_data', 'data_key': 'glc_data', 'risk_key': 'glc_risk'},
-}
-
-def _sensor_topic_info(sensor):
-    """Resolve a Gherkin sensor label (e.g. 'the oximeter') to its topic info via SYSTEM_MAP."""
-    node_name = SYSTEM_MAP[sensor].lstrip('/')
-    return SENSOR_TOPIC_INFO[node_name]
-
-@given(parsers.parse('the patient is being monitored by {sensor}'))
-@given('the patient is being monitored by <sensor>')
-def step_given_patient_monitored_by_sensor(context, sensor):
-    node_is_active([SYSTEM_MAP[sensor], SYSTEM_MAP['the central hub']])
-
-@when('<sensor> reports a new vital sign reading')
-@when(parsers.parse('{sensor} reports a new vital sign reading'))
-def step_when_sensor_reports_new_reading(context, sensor):
-    context['sensor_data'] = {}
-    context['found_high_risk'] = []
-    context['target_system_data'] = {}
-
-    topic = _sensor_topic_info(sensor)['topic']
-    process_real_time_topics(context, capture_topic_data, [topic, "/TargetSystemData"])
 
 @when('the oximeter reports a blood oxygenation reading outside its normal range')
 def step_when_oximeter_reports_out_of_range(context):

@@ -1,20 +1,5 @@
 Feature: Check for bsn features
 
-	# Scenario Outline: BodyHub successfully receives raw vital sign data (BSN-P08)
-	# 	Given the system is fully operational
-	# 	When the Body Sensors collect risk data
-	# 	Then the sensors should process the initial data
-	# 	And the BodyHub should receive the raw data from sensors
-	# 	And the BodyHub should evaluate the risk level
-
-	# # Validação do Sad Path
-	# Scenario: BodyHub fails to process data when inactive
-	# 	Given the Body Sensors are online
-	# 	But the BodyHub is inactive
-	# 	When the Body Sensors collect vital sign data
-	# 	Then the sensors should process the initial data
-	# 	But the BodyHub should not process any data or risk
-
 	@behavior @bsn-p08
 	Scenario Outline: The central hub receives the vital sign reading reported by a body sensor (BSN-P08)
 		Given the patient is being monitored by <sensor>

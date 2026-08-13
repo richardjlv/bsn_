@@ -29,10 +29,6 @@ def step_then_data_persisted(context):
     """Simulate data persistence."""
     assert 'Status' in context['non_sensor']['/persist']['type'], 'Data was not sent to collector, so it cannot be persisted.'
 
-def step_database_error_occurs(context):
-    """Simulate a database error preventing persistence."""
-    rosnode.kill_nodes('/logger')
-    rospy.sleep(2)
 
 def step_then_system_logs_failure(context):
     """Ensure the system logs a persistence failure."""
@@ -41,24 +37,12 @@ def step_then_system_logs_failure(context):
     persist_topic = parse_topic_data('/persist')
     assert 'fail' in persist_topic['content']
 
-@given('the patient is being monitored by the thermometer')
-def step_given_patient_monitored_by_thermometer(context):
-    """The monitoring infrastructure (persistence system) is online."""
-    node_is_online()
-
 @given('the knowledge repository is experiencing storage failures')
 def step_given_knowledge_repository_storage_failures(context):
     """Arm the persistence system so the upcoming reading fails to be stored."""
     node_is_online()
     context['simulate_persistence_failure'] = True
 
-@when('the thermometer reports a new body temperature reading')
-def step_when_thermometer_reports_new_reading(context):
-    """The thermometer's reading is captured and sent to the collector."""
-    listen_to_thermometer(context)
-    step_when_send_data_to_collector(context)
-    if context.get('simulate_persistence_failure'):
-        step_database_error_occurs(context)
 
 @then('that reading should be retrievable from the knowledge repository with the value reported')
 def step_then_reading_retrievable_from_knowledge_repository(context):
