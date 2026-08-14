@@ -1,7 +1,7 @@
 SYSTEM_MAP = {
     'the central hub': '/g4t1',
 
-	# managing system
+	# system
 	'the managing system': ['/reli_engine', '/enactor', '/logger', '/param_adapter'],
 	'the reliability engine': '/reli_engine',
 	'the adaptation enactor': '/enactor',
@@ -9,6 +9,7 @@ SYSTEM_MAP = {
 	'the parameter adapter': '/param_adapter',
 	'the log collector': '/collector',
 	'the uncertainty injector': '/injector',
+	'monitoring data': '/TargetSystemData',
 
 	# knowledge repository
 	'the knowledge repository': '/data_access',
@@ -27,4 +28,5 @@ SYSTEM_MAP = {
 	# topicos
 	'uncertainty injection': '/uncertainty_',
 	'uncertainty log': '/log_uncertainty',
+	'persistence': '/persist',
 }

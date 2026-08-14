@@ -9,7 +9,3 @@ scenarios("./features/injector.feature")
 def then_inject_uncertainty_to_sensor(context, node, topic, sensor):
     topic_name = SYSTEM_MAP[topic] + SYSTEM_MAP[sensor]
     check_topic_inbound_from_node(context, topic_name, SYSTEM_MAP[node])
-
-@then(parsers.parse('{node} should publish "{topic}" to the system log'))
-def then_inject_uncertainty(context, node, topic):
-    check_topic_inbound_from_node(context, SYSTEM_MAP[topic], SYSTEM_MAP[node])

@@ -135,3 +135,11 @@ def _database_error_occurs(context):
     """Simulate a database error preventing persistence."""
     rosnode.kill_nodes('/logger')
     rospy.sleep(2)
+
+@then(parsers.parse('{node} should publish "{topic}" to {node_target}'))
+def then_publish_to_node(context, node, topic, node_target):
+    check_topic_inbound_from_node(context, SYSTEM_MAP[topic], SYSTEM_MAP[node])
+
+@then(parsers.parse('{node} should subscribe to "{topic}" published by {node_origin}'))
+def then_subscribe_to_topic(context, node, topic, node_origin):
+    check_topic_outbound_to_node(context, SYSTEM_MAP[topic], SYSTEM_MAP[node])
