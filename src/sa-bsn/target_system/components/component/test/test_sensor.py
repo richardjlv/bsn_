@@ -299,9 +299,6 @@ class SharedSensorTests:
 
     def test_transfer_with_accuracy_fail(self, mock_mid_risk_service):
         """Test transfer with accuracy fail (label mismatch)"""
-        if self.vital_sign != 'oxigenation':
-            pytest.skip("Accuracy fail test only applies to g3t1_1")
-
         status_messages = []
         status_lock = threading.Lock()
 
@@ -318,7 +315,10 @@ class SharedSensorTests:
         received_msg = self.wait_for_message()
         assert received_msg is not None
 
-        uncertainty_topics = ["uncertainty_g3t1_1", "uncertainty_/g3t1_1"]
+        uncertainty_topics = [
+            "uncertainty_{}".format(self.node_name),
+            "uncertainty_/{}".format(self.node_name),
+        ]
         uncertainty_pubs = [
             rospy.Publisher(topic, Uncertainty, queue_size=10)
             for topic in uncertainty_topics
@@ -327,7 +327,7 @@ class SharedSensorTests:
 
         uncertainty_msg = Uncertainty()
         uncertainty_msg.source = "test"
-        uncertainty_msg.target = "g3t1_1"
+        uncertainty_msg.target = self.node_name
         uncertainty_msg.content = "noise_factor=0.3"
 
         for _ in range(3):
@@ -339,12 +339,12 @@ class SharedSensorTests:
             status_messages,
             status_lock,
             timeout=6.0,
-            matcher=lambda msg: msg.source.endswith("g3t1_1") and msg.content == "fail"
+            matcher=lambda msg: msg.source.endswith(self.node_name) and msg.content == "fail"
         )
         status_subscriber.unregister()
 
         assert status_msg is not None
-        assert status_msg.source.endswith("g3t1_1")
+        assert status_msg.source.endswith(self.node_name)
         assert status_msg.content == "fail"
 
         
