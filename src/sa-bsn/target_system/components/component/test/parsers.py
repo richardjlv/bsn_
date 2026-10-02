@@ -56,12 +56,12 @@ def capture_topic_data(topic, line_limit=10, duration=None):
         return topic, parsed_data, False, None
     parsed_data = parse_topic_data(topic, line_limit=line_limit, duration=duration)
 
-    if parsed_data is None:
-        print("Alerta: Falha ao analisar dados para o topico '{}'. parse_topic_data retornou None.".format(topic))
-        return topic, {}, False, None 
+    if not parsed_data:
+        print("Alerta: Falha ao capturar dados para o topico '{}'. Nenhuma mensagem chegou dentro do timeout.".format(topic))
+        return topic, {}, False, None
 
     high_risk_detected = any(
-            float(value) > 10 for value in parsed_data['risk']  # Check each value in each list
+            float(value) > 10 for value in parsed_data.get('risk', [])  # Check each value in each list
         )
     risk_key = "{0}_risk".format(topic)  # Append '_risk' to the data type 
     return topic, parsed_data, high_risk_detected, risk_key

@@ -12,6 +12,7 @@ class TestSensorCore(SharedSensorTests):
 
     topic = 'oximeter_data'
     vital_sign = 'oxigenation'
+    node_name = 'g3t1_1'
 
     def test_collect_handles_patient_service_failure(self):
         """Cover collect() branch when getPatientData call fails (Sensor.cpp generic behavior)."""

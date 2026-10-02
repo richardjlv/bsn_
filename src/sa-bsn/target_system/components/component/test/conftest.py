@@ -144,26 +144,33 @@ def _node_topic_info(sensor):
 
 def _send_data_to_collector(context):
     """Simulate sending data to the collector."""
-    assert context['sensor'] in context['non_sensor']['/collect_energy_status']['source'], 'No data detected in /collect_energy_status.'
+    energy_status_source = context['non_sensor'].get('/collect_energy_status', {}).get('source', ())
+    assert context['sensor'] in energy_status_source, 'No data detected in /collect_energy_status.'
 
 def _capture_sensor_reading(context, sensor, duration=None):
     """Core of `step_when_sensor_reports_new_reading`, factored out so callers outside pytest-bdd (e.g. test_BSN-P03.py)
     can pass `duration`; an extra kwarg on the @when step would be resolved as a fixture and break bound scenarios."""
-    context['sensor'] = SYSTEM_MAP[sensor]
-    context['sensor_data'] = {}
-    context['found_high_risk'] = []
-    context['target_system_data'] = {}
-    context['non_sensor'] = {}
-
     topic = _node_topic_info(sensor)['topic']
-    process_real_time_topics(context, capture_topic_data, [
-        topic,
-        '/collect_energy_status',
-        '/persist',
-        '/log_energy_status',
-        '/TargetSystemData'
-    ], duration=duration)
-    print('context: {}'.format(context))
+    topics = [topic, '/collect_energy_status', '/persist', '/log_energy_status', '/TargetSystemData']
+
+    # On a loaded box the `rostopic echo` subprocesses (5 of them, started together) can all miss their
+    # connection window and come back empty, the same startup race guarded against in
+    # step_given_patient_monitored_by_sensor. One retry absorbs that; a genuine absence of data still
+    # fails after the second attempt.
+    for attempt in range(2):
+        context['sensor'] = SYSTEM_MAP[sensor]
+        context['sensor_data'] = {}
+        context['found_high_risk'] = []
+        context['target_system_data'] = {}
+        context['non_sensor'] = {}
+
+        process_real_time_topics(context, capture_topic_data, topics, duration=duration)
+        print('context: {}'.format(context))
+
+        nothing_captured = not context['sensor_data'] and all(not v for v in context['non_sensor'].values())
+        if not nothing_captured or attempt == 1:
+            break
+        print('Alerta: nenhum topico retornou dados na tentativa {}; tentando capturar novamente.'.format(attempt + 1))
 
     _send_data_to_collector(context)
     if context.get('simulate_persistence_failure'):
