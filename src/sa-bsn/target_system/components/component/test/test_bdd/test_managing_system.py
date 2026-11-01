@@ -109,7 +109,7 @@ def _mark_persist_since_index(context):
         context["persist_since_index"] = len(shared.persist_received)
 
 
-def _wait_for_persist_record(target, msg_type="AdaptationCommand", timeout=10.0, since_index=0):
+def _wait_for_persist_record(target, msg_type="AdaptationCommand", timeout=10.0, since_index=0, min_frequency=None):
     """Aguarda um novo Persist (apos since_index) do tipo/target informados."""
     shared = _get_shared_adaptation_tests()
     deadline = time.time() + timeout
@@ -118,6 +118,13 @@ def _wait_for_persist_record(target, msg_type="AdaptationCommand", timeout=10.0,
             snapshot = list(shared.persist_received[since_index:])
         for msg in snapshot:
             if msg.target == target and msg.type == msg_type:
+                if min_frequency is not None:
+                    try:
+                        frequency = _parse_frequency_hz(msg.content)
+                    except (AssertionError, ValueError):
+                        continue
+                    if not min_frequency < frequency < float("inf"):
+                        continue
                 return msg
         rospy.sleep(0.05)
     return None
@@ -296,6 +303,7 @@ def given_monitoring_reliability(context, sensor):
 @when(parsers.parse("{sensor} repeatedly reports a 'fail' status"))
 def when_sensor_reports_fail(context, sensor):
     context["target_sensor"] = SYSTEM_MAP[sensor]
+    _mark_persist_since_index(context)
     context["degradation_start_time"] = time.time()
     _start_status_failure_stream(context)
     # Frequencia nominal inicial do controlador, conforme o launch do enactor.
@@ -351,9 +359,18 @@ def then_increase_sampling_rate(context, sensor):
     context["commanded_frequency_hz"] = commanded_hz
 
 
-    # the adaptation command should be recorded in the knowledge repository via /logger
-    # we need to add a validation if it was registered
-    then_adaptation_logged(context)
+@then(parsers.parse("a record of an adaptation command increasing the sampling rate of {sensor} should reach the persistence channel"))
+def then_increase_recorded(context, sensor):
+    try:
+        record = _wait_for_persist_record(
+            target=SYSTEM_MAP[sensor], timeout=30.0,
+            since_index=context["persist_since_index"],
+            min_frequency=context["baseline_frequency_hz"],
+        )
+        assert record is not None, "No new increase-command record reached /persist"
+    finally:
+        _stop_status_failure_stream(context)
+
 
 def _wait_for_peak_frequency_stable(context, since_index, timeout=15.0, quiet_period=2.5):
     """Aguarda a maior frequencia observada para o target_sensor parar de crescer e retorna esse valor como o pico."""
