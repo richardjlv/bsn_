@@ -41,6 +41,13 @@ Feature: Managing system adapts sensor sampling rate in response to reliability 
     When the oximeter repeatedly reports a 'fail' status
     Then an adaptation command increasing the sampling rate of the oximeter should be issued
 
+  @behavior @logging @g4-g5
+  Scenario: A sampling rate increase is recorded after reliability degradation (G4/G5)
+    Given the managing system is monitoring the reliability of the oximeter
+    When the oximeter repeatedly reports a 'fail' status
+    Then a record of an adaptation command increasing the sampling rate of the oximeter should reach the persistence channel
+
+
   @behavior @g4-g5
   # Rastreabilidade BDD18: BSN-C09. Critério local de adaptação por confiabilidade; G4/G5 local.
   Scenario: Sampling rate decreases after sensor reliability recovers (G4/G5)
