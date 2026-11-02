@@ -10,14 +10,27 @@ void Controller::setUp() {
     ros::NodeHandle nh;
 
     adapt = nh.advertise<archlib::AdaptationCommand>("log_adapt", 10);
-
+    
     except = nh.advertise<archlib::Exception>("exception", 10);
 
     double freq;
-	nh.getParam("frequency", freq);
+    nh.getParam("frequency", freq);
     nh.getParam("kp", KP);
     nh.getParam("adaptation_parameter", adaptation_parameter);
-	rosComponentDescriptor.setFreq(freq);
+    rosComponentDescriptor.setFreq(freq);
+
+    // --- CORREÇÃO: Aguarda os serviços críticos estarem online antes de continuar ---
+    ROS_INFO("Waiting for critical services to become available...");
+    
+    // Aguarda o serviço do Strategy Manager (EngineRequest) por até 10 segundos
+    if (!ros::service::waitForService("EngineRequest", ros::Duration(10.0))) {
+        ROS_ERROR("Timeout waiting for Strategy Manager service (EngineRequest)!");
+    }
+
+    // Aguarda o serviço do Data Access por até 10 segundos
+    if (!ros::service::waitForService("DataAccessRequest", ros::Duration(10.0))) {
+        ROS_ERROR("Timeout waiting for Data Access service (DataAccessRequest)!");
+    }
 
     receiveAdaptationParameter();
 }

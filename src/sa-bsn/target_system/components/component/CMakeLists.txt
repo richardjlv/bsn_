@@ -76,21 +76,46 @@ target_link_libraries(patient_data_service
 )
 ADD_DEPENDENCIES(patient_data_service messages_generate_messages_cpp)
 
-#if(CATKIN_ENABLE_TESTING)
-#    find_package(rostest REQUIRED)
-#    add_rostest_gtest(component_test
-#        test/unit/component_test.launch
-#        test/unit/test_Sensor.cpp
-#    )
-#    target_link_libraries(component_test ${catkin_LIBRARIES})
-#endif()
-
 if (CATKIN_ENABLE_TESTING)
+  if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    message(STATUS "Test build com Clang: habilitando Source-based Coverage")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-instr-generate -fcoverage-mapping -O0 -fno-inline")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-instr-generate -fcoverage-mapping")
+  else()
+    message(STATUS "Coverage LLVM desabilitado: compilador nao eh Clang")
+  endif()
+
   find_package(rostest REQUIRED)
-  add_rostest_gtest(sensor_execution_test
-  test/features/sensor_execution.launch
-  test/features/sensor_execution_test.cpp)
-  target_link_libraries(sensor_execution_test ${catkin_LIBRARIES})
+  find_package(ros_pytest REQUIRED)
+
+  add_rostest(test/test_bdd/test_BSN-P03.launch)
+  add_rostest(test/test_bdd/test_health_status.launch)
+  add_rostest(test/test_bdd/test_check_bsn.launch)
+  add_rostest(test/test_bdd/test_data_persistance.launch)
+  add_rostest(test/test_bdd/test_injector.launch)
+  add_rostest(test/test_bdd/test_knowledge_repo.launch)
+  add_rostest(test/test_bdd/test_managing_system.launch)
+
+  add_rostest(test/test_bdd/test_target_system.launch)
+  
+  # unit test
+  add_rostest(test/unit/test_G3T1_1.launch)
+  add_rostest(test/unit/test_G3T1_2.launch)
+  add_rostest(test/unit/test_G3T1_3.launch)
+  add_rostest(test/unit/test_G3T1_4.launch)
+  add_rostest(test/unit/test_G3T1_5.launch)
+  add_rostest(test/unit/test_G3T1_6.launch)
+
+  add_rostest(test/unit/test_G3T1_1_connected.launch)
+  add_rostest(test/unit/test_G3T1_2_connected.launch)
+  add_rostest(test/unit/test_G3T1_3_connected.launch)
+  add_rostest(test/unit/test_G3T1_4_connected.launch)
+  add_rostest(test/unit/test_G3T1_5_connected.launch)
+  add_rostest(test/unit/test_G3T1_6_connected.launch)
+  
+  add_rostest(test/unit/test_G4T1.launch)
+  add_rostest(test/unit/test_sensor_core.launch)
+
 endif()
 
 
