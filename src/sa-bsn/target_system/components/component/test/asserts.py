@@ -147,12 +147,9 @@ def check_time_performance(sensor_data, target_system_data, key, value, evaluate
                 sensor_time = float(sensor_data[key]['%time'][i]) / 1e3
                 target_time = float(target_system_data['%time'][j]) / 1e3
 
-                # Round and compare times
-                #rounded_sensor_time = round(sensor_time, -5) / 1e6
-                #rounded_target_time = round(target_time, -5) / 1e6
-                time_diff = sensor_time - target_time
+                time_diff = target_time - sensor_time
                 print("diff: {}".format(time_diff))
-                if time_diff < time_threshold:
+                if 0 <= time_diff <= time_threshold:
                     return True
                 print('TIME DIFFERENCE in {}: {} us'.format(key, time_diff))
                 
