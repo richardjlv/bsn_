@@ -4,18 +4,18 @@ import time
 import ros_pytest
 from pytest_bdd import scenarios, given, when, then, parsers
 from test_sensor import SharedSensorTests
-from conftest import _node_topic_info, _capture_sensor_reading
+from conftest import _node_topic_info
 from interface_map import SYSTEM_MAP
 import rospy
 import rosnode
 from archlib.msg import AdaptationCommand
-from messages.msg import SensorData
+from messages.msg import SensorData, TargetSystemData
+from temporal_capture import capture_temporal_topics
 from asserts import is_node_receiving_multiple_topics, assert_node_is_online, is_node_publishing_to_topics, check_time_performance, bool_node_is_active
 
 scenarios("./features/BSN-P03.feature")
 
-# The thermometer publishes far slower than /TargetSystemData, so capture both topics over the same wall-clock
-# window (not a line count) so the reading and the hub's reaction can land in the same snapshot.
+# Both topics are observed together, independently of message header stamps.
 EMERGENCY_CAPTURE_DURATION = 15
 
 # Stand-in for "maximum sampling rate": well above the thermometer's 0.6 Hz baseline (test_g3t1_3.launch), driven as the
@@ -80,7 +80,15 @@ def step_given_sensor_overloaded(context, sensor):
 def step_when_high_risk_reading_reported(context, sensor):
     assert_node_is_online('/patient_data_service')
     context['sensor_info'] = _node_topic_info(sensor)
-    _capture_sensor_reading(context, sensor, duration=EMERGENCY_CAPTURE_DURATION)
+    _ensure_ros_node()
+    context['sensor_data'], context['target_system_data'] = capture_temporal_topics(
+        rospy, SensorData, TargetSystemData, context['sensor_info'], EMERGENCY_CAPTURE_DURATION,
+    )
+    print('temporal_capture: {}'.format({
+        'sensor_data': context['sensor_data'],
+        'target_system_data': context['target_system_data'],
+        'clock': 'CLOCK_MONOTONIC', 'boundary': 'observer_receive',
+    }))
 
 @then('the central hub should report an emergency within 250 ms of that reading')
 def step_then_central_hub_reports_emergency(context):
