@@ -6,6 +6,9 @@ from pytest_bdd import scenarios, given, when, then, parsers
 import pytest
 import rospy
 from interface_map import SYSTEM_MAP
+from conftest import _node_topic_info
+from temporal_capture import monotonic_ns
+from sampling_rate_oracle import observe_rate, assert_rate_changed
 
 from archlib.msg import AdaptationCommand, Status, Persist
 from archlib.srv import EffectorRegister
@@ -344,7 +347,8 @@ def then_increase_sampling_rate(context, sensor):
         timeout=30.0,
         since_index=since,
     )
-    _stop_status_failure_stream(context)
+    if result is None:
+        _stop_status_failure_stream(context)
 
     assert result is not None, (
         "Nenhum AdaptationCommand com freq > {:.1f}Hz recebido para {} em 30s. "
@@ -368,8 +372,9 @@ def then_increase_recorded(context, sensor):
             min_frequency=context["baseline_frequency_hz"],
         )
         assert record is not None, "No new increase-command record reached /persist"
-    finally:
+    except BaseException:
         _stop_status_failure_stream(context)
+        raise
 
 
 def _wait_for_peak_frequency_stable(context, since_index, timeout=15.0, quiet_period=2.5):
@@ -406,9 +411,15 @@ def given_elevated_rate(context):
     with shared.lock:
         elevate_start_index = len(shared.commands)
 
+    initial = _observe_sensor_rate(context['rate_sensor'])
     _start_status_failure_stream(context)
-    rospy.sleep(8.0)
-    _stop_status_failure_stream(context)
+    try:
+        rospy.sleep(8.0)
+        elevated = _observe_sensor_rate(context['rate_sensor'])
+        assert_rate_changed(initial, elevated, 'increase')
+        context['observed_elevated_rate'] = elevated
+    finally:
+        _stop_status_failure_stream(context)
 
     peak_hz = _wait_for_peak_frequency_stable(context, elevate_start_index)
 
@@ -437,6 +448,7 @@ def when_reliability_recovers(context):
 @given(parsers.parse("{sensor} is operating at an elevated sampling rate"))
 def given_elevated_rate_sensor(context, sensor):
     context["target_sensor"] = SYSTEM_MAP[sensor]
+    context["rate_sensor"] = sensor
     given_elevated_rate(context)
 
 @when(parsers.parse("the reliability of {sensor} rises above the threshold"))
@@ -641,3 +653,31 @@ def then_adaptation_within_time_limit_sensor(context, sensor, time_limit):
         "Tempo de resposta {:.2f}s excede o limite de {:.0f}s".format(
             elapsed, time_limit_s)
     )
+
+
+def _observe_sensor_rate(sensor):
+    _ensure_ros_node()
+    def subscribe(callback):
+        sub = rospy.Subscriber(_node_topic_info(sensor)['topic'], SensorData, callback, queue_size=200)
+        return sub.unregister
+    return observe_rate(subscribe, lambda: time.sleep(0.01), lambda: monotonic_ns() / 1e9)
+
+
+@given(parsers.parse('the current publication rate of {sensor} is measured'))
+def measure_initial_rate(context, sensor):
+    context['observed_initial_rate'] = _observe_sensor_rate(sensor)
+
+
+@then(parsers.parse('the observed publication rate of {sensor} should increase'))
+def assert_sensor_rate_increased(context, sensor):
+    try:
+        after = _observe_sensor_rate(sensor)
+        assert_rate_changed(context['observed_initial_rate'], after, 'increase')
+    finally:
+        _stop_status_failure_stream(context)
+
+
+@then(parsers.parse('the observed publication rate of {sensor} should decrease'))
+def assert_sensor_rate_decreased(context, sensor):
+    after = _observe_sensor_rate(sensor)
+    assert_rate_changed(context['observed_elevated_rate'], after, 'decrease')
