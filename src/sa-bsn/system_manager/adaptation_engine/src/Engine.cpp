@@ -124,7 +124,13 @@ void Engine::body(){
 
     ros::Rate loop_rate(rosComponentDescriptor.getFreq());
     int update=0;
-    while (ros::ok){
+    // ros::ok, sem os parenteses, e' o ENDERECO da funcao - sempre verdadeiro.
+    // Com o typo este laco nunca via o pedido de shutdown: o no' ignorava o
+    // SIGINT do roslaunch ate' levar SIGKILL, nunca rodava tearDown() e, num
+    // build de cobertura, morria antes de o llvm gravar o .profraw (por isso
+    // Engine/ReliabilityEngine/CostEngine apareciam com 0% mesmo com o
+    // reli_engine subindo nos testes BDD).
+    while (ros::ok()){
         update++;
         if (update >= rosComponentDescriptor.getFreq()*10){
             update = 0;
