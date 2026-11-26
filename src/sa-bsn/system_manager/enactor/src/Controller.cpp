@@ -75,7 +75,7 @@ void Controller::apply_reli_strategy(const std::string &component) {
 
     double error = r_ref[component] - r_curr[component]; //error = Rref - Rcurr
 
-    if(error > stability_margin*r_ref[component] || error < stability_margin*r_ref[component]) {
+    if(error > stability_margin*r_ref[component] || error < -stability_margin*r_ref[component]) {
 
         exception_buffer[component] = (exception_buffer[component] < 0) ? 0 : exception_buffer[component] + 1;
 
