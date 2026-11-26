@@ -10,21 +10,45 @@ Engine::~Engine() {}
 void Engine::setUp() {
     ros::NodeHandle handle;
     handle.getParam("qos_attribute", qos_attribute);
-	handle.getParam("info_quant", info_quant);
-	handle.getParam("monitor_freq", monitor_freq);
-	handle.getParam("actuation_freq", actuation_freq);
+    handle.getParam("info_quant", info_quant);
+    handle.getParam("monitor_freq", monitor_freq);
+    handle.getParam("actuation_freq", actuation_freq);
 
     rosComponentDescriptor.setFreq(monitor_freq);
 
+    // Antes da alteração, se o Engine iniciasse frações de segundo mais rápido que o DataAccess, 
+    // a chamada de serviço falhava, a formula_str retornava vazia, 
+    // e o Engine entrava em um estado inválido ou crashava.
+    
+    // --- CORREÇÃO: Aguarda de forma segura o Data Access subir ---
+    ROS_WARN("Engine waiting for DataAccessRequest service to become available...");
+    if (!ros::service::waitForService("DataAccessRequest", ros::Duration(15.0))) {
+        ROS_ERROR("Timeout waiting for Data Access service in Engine!");
+    }
+
     std::string formula_str = "";
-    do{
+    // Tenta buscar a fórmula. Se falhar na primeira, tenta mais algumas vezes dando spin
+    int retry_count = 0;
+    while (ros::ok()) {
         formula_str = fetch_formula(qos_attribute);
-        ros::Duration(1.0).sleep() ;
-    } while(formula_str=="");
+        if (formula_str != "") {
+            break;
+        }
+        
+        retry_count++;
+        if (retry_count > 10) {
+            ROS_FATAL("Engine could not fetch formula after multiple attempts. Aborting.");
+            return;
+        }
+        
+        ros::spinOnce();
+        ros::Duration(1.0).sleep();
+    }
     
     setUp_formula(formula_str);
 
     enactor_server = handle.advertiseService("EngineRequest", &Engine::sendAdaptationParameter, this);
+    ROS_WARN("EngineRequest service advertised successfully!");
 }
 
 void Engine::tearDown() {}
