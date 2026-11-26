@@ -44,7 +44,7 @@ fi
 
 # 1. Preparação do ambiente
 # Cada tentativa conserva seus próprios artefatos, inclusive se falhar.
-COVERAGE_ROOT="${BSN_COVERAGE_ROOT:-coverage_llm}"
+COVERAGE_ROOT="${BSN_COVERAGE_ROOT:-coverage_llvm}"
 mkdir -p "$COVERAGE_ROOT" || exit 1
 BASE_DIR=$(mktemp -d "$COVERAGE_ROOT/run_$(date -u +%Y%m%dT%H%M%SZ)_XXXXXX") || exit 1
 BASE_DIR=$(cd "$BASE_DIR" && pwd) || exit 1

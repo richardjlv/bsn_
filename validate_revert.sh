@@ -124,7 +124,7 @@ if [ "$BUILD" -eq 1 ]; then
     catkin_make tests 2>&1 | tee "$OUT/build_tests.log" >/dev/null
 fi
 
-# Perfil de cobertura fora do coverage_llm/ para nao contaminar aquele relatorio
+# Perfil de cobertura fora do coverage_llvm/ para nao contaminar aquele relatorio
 export LLVM_PROFILE_FILE="$OUT/profraw/%p.profraw"
 
 # 2. Um rostest por launch, sequencial

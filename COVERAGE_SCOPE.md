@@ -1,7 +1,7 @@
 # Escopo dos relatórios de cobertura ROS 1
 
 Execute `bash coverage.sh` na raiz deste workspace catkin, no ambiente ROS 1.
-Cada nova coleta em `coverage_llm/run_*` gera dois relatórios com os mesmos
+Cada nova coleta em `coverage_llvm/run_*` gera dois relatórios com os mesmos
 perfis e objetos:
 
 - `html/index.html`: cobertura bruta, incluindo dependências e arquivos gerados
@@ -39,7 +39,7 @@ No ambiente ROS 1, com os binários da coleta ainda presentes, execute a partir
 da raiz deste workspace catkin:
 
 ```bash
-bash diagnose_coverage.sh coverage_llm/run_20260928T015653Z_iY2pcY
+bash diagnose_coverage.sh coverage_llvm/run_20260928T015653Z_iY2pcY
 ```
 
 O script cria `diagnostic_*` dentro da coleta, registra versões e hashes e
