@@ -77,6 +77,14 @@ target_link_libraries(patient_data_service
 ADD_DEPENDENCIES(patient_data_service messages_generate_messages_cpp)
 
 if (CATKIN_ENABLE_TESTING)
+  if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    message(STATUS "Test build com Clang: habilitando Source-based Coverage")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-instr-generate -fcoverage-mapping -O0 -fno-inline")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-instr-generate -fcoverage-mapping")
+  else()
+    message(STATUS "Coverage LLVM desabilitado: compilador nao eh Clang")
+  endif()
+
   find_package(rostest REQUIRED)
   find_package(ros_pytest REQUIRED)
 
