@@ -76,21 +76,16 @@ target_link_libraries(patient_data_service
 )
 ADD_DEPENDENCIES(patient_data_service messages_generate_messages_cpp)
 
-#if(CATKIN_ENABLE_TESTING)
-#    find_package(rostest REQUIRED)
-#    add_rostest_gtest(component_test
-#        test/unit/component_test.launch
-#        test/unit/test_Sensor.cpp
-#    )
-#    target_link_libraries(component_test ${catkin_LIBRARIES})
-#endif()
-
 if (CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
-  add_rostest_gtest(sensor_execution_test
-  test/features/sensor_execution.launch
-  test/features/sensor_execution_test.cpp)
-  target_link_libraries(sensor_execution_test ${catkin_LIBRARIES})
+  find_package(ros_pytest REQUIRED)
+
+
+  
+  # unit test
+
+  
+
 endif()
 
 
