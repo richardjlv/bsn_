@@ -66,3 +66,7 @@ json
 venv
 TODO
 bsn_remote_control
+
+coverage/
+coverage_llm/
+coverage_llvm/
