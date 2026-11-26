@@ -32,7 +32,10 @@ void Engine::tearDown() {}
 bool Engine::sendAdaptationParameter(archlib::EngineRequest::Request &req, archlib::EngineRequest::Response &res) {
     try {
         res.content = qos_attribute;
-    } catch(...) {}
+        return true;
+    } catch(...) {
+        return false;
+    }
 }
 
 void Engine::receiveException(const archlib::Exception::ConstPtr& msg){
