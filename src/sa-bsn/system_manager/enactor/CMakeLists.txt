@@ -34,15 +34,21 @@ ADD_DEPENDENCIES(enactor messages_generate_messages_cpp)
 ###########################################################################
 # Tests.
 if(CATKIN_ENABLE_TESTING)
-  find_package(rostest REQUIRED)
-  find_package(ros_pytest REQUIRED)
+  find_package(ros_pytest QUIET)
+  if(ros_pytest_FOUND)
+    find_package(rostest REQUIRED)
 
-  # Both launches bring up a real `data_access` (repository package) node
-  # alongside enactor - see test/unit/test_enactor.py's module docstring for
-  # why. They are split because `adaptation_parameter` is read once, in
-  # Controller::setUp(), and selects which half of Controller.cpp runs:
-  # test_enactor.launch covers the cost path, test_enactor_reliability.launch
-  # the reliability one (the path the deployed system uses).
-  add_rostest(test/unit/test_enactor.launch)
-  add_rostest(test/unit/test_enactor_reliability.launch)
+    # Both launches bring up a real `data_access` (repository package) node
+    # alongside enactor - see test/unit/test_enactor.py's module docstring for
+    # why. They are split because `adaptation_parameter` is read once, in
+    # Controller::setUp(), and selects which half of Controller.cpp runs:
+    # test_enactor.launch covers the cost path, test_enactor_reliability.launch
+    # the reliability one (the path the deployed system uses).
+    add_rostest(test/unit/test_enactor.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/unit/test_enactor_reliability.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+  else()
+    message(STATUS "ros_pytest absent: skipping Python ROS tests; see README.md")
+  endif()
 endif()

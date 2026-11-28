@@ -1,9 +1,12 @@
 <launch>
+  <arg name="test_pythonpath" default="$(env PYTHONPATH)" />
+  <arg name="pytest_args" default="" />
+  <arg name="test_name" default="sensor_test" />
     <!-- <include file="$(find messages)/../configurations/environment/patient.launch"/> APPLICATION -->
-  
-    <include file="$(find component)/test/patient.launch" />  
+
+    <include file="$(find component)/test/patient.launch" />
     <include file="$(find messages)/../configurations/simulation/injector.launch" /> <!-- FAULT INJECTION -->
-  
+
     <include file="$(find messages)/../configurations/logging_infrastructure/test_logger.launch" /> <!-- LOGGING INFRASTRUCTURE -->
 
     <include file="$(find messages)/../configurations/knowledge_repository/test_data_access.launch" /> <!-- KNOWLEDGE REPOSITORY -->
@@ -22,5 +25,7 @@
     <include file="$(find messages)/../configurations/target_system/test_g3t1_5.launch" /> <!-- APPLICATION -->
     <include file="$(find messages)/../configurations/target_system/test_g3t1_6.launch" /> <!-- APPLICATION -->
   <param name="test_module" value="$(find component)/test/test_bdd/test_target_system.py"/>
-  <test test-name="sensor_test" pkg="ros_pytest" type="ros_pytest_runner" />
+  <test test-name="$(arg test_name)" pkg="ros_pytest" type="ros_pytest_runner" args="$(arg pytest_args)" time-limit="600.0" >
+    <env name="PYTHONPATH" value="$(arg test_pythonpath):$(find ros_pytest)/src:$(env PYTHONPATH)" />
+  </test>
 </launch>

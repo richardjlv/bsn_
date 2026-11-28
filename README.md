@@ -159,3 +159,48 @@ Adviser: [**Genaína N. Rodrigues**](https://genaina.github.io/)
 ## Acknowledgment
 
 This study was financed in part by CAPES-Brasil – Finance Code 001, through CAPES scholarship, by CNpq under grant number 306017/2018-0, by University of Brasilia under Call DPI/DPG 03/2020, by FAPDF Call 03/2018 by the Wallenberg Al, Autonomous Systems and Software Program (WASP) funded by the Knut and Alice Wallenberg Foundation
+
+
+## ROS 1 test environment (Melodic / Python 2.7)
+
+Install the test tools from the workspace root, after sourcing Melodic:
+
+```bash
+source /opt/ros/melodic/setup.bash
+bash tools/setup_test_environment.sh
+rosdep install --from-paths src --ignore-src -y --skip-keys=ros_pytest
+catkin_make
+source devel/setup.bash
+```
+
+`requirements/test-melodic.txt` pins pytest 4.6.11, pytest-bdd 3.2.1,
+futures 3.3.0 and their test dependencies. The setup script checks out
+ros_pytest 0.2.1 at commit `201c4adb8dcf89ff76215fd9b6bf8ccd91d418f3`.
+It refuses to overwrite a different or modified checkout. A normal build
+without ros_pytest skips the Python ROS tests and prints a configuration
+message; it does not validate those tests. Install the tools and rerun
+`catkin_make` before requesting a test campaign.
+
+Run a campaign in Bash, keeping previous results:
+
+```bash
+set -o pipefail
+run_dir=$(mktemp -d "$PWD/validacao_XXXXXXXX")
+mkdir -p "$run_dir/xml"
+export ROS_TEST_RESULTS_DIR="$run_dir/xml"
+catkin_make -DCATKIN_TEST_RESULTS_DIR="$run_dir/xml" run_tests -j1 \
+  2>&1 | tee "$run_dir/run_tests.log"
+catkin_test_results --verbose "$run_dir/xml" \
+  2>&1 | tee "$run_dir/results.log"
+echo "Results: $run_dir"
+```
+
+BDD17 and BDD18 each run in a separate ROS stack. The remaining managing-system
+scenarios share one launch; other registered rostests run their complete modules.
+Sensor unit tests provide their own patient service without a competing real
+patient node. BDD20 requires new adaptation commands in two successive waits
+of up to five seconds; it does not verify sensor frequency application.
+BDD17 and BDD18 also measure the actual sensor publication rate.
+
+TG notes and historical traceability are maintained in the [thesis repository](https://github.com/richardjlv/bsn_docs), under `src/tg/revisoes/`.
+BDD06 checks controlled status forwarding to `/persist`; it does not establish storage or retrieval of a vital-sign reading.

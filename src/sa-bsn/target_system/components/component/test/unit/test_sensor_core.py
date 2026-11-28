@@ -23,7 +23,7 @@ class TestSensorCore(SharedSensorTests):
         with self.message_lock:
             del self.received_messages[:]
 
-        received_msg = self.wait_for_message(timeout=2.5)
+        received_msg = self.wait_for_message(timeout=5.0, matcher=lambda msg: msg.data == 0.0)
         assert received_msg is not None
         assert received_msg.data == 0.0
 

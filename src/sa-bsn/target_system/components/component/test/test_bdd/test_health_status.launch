@@ -1,8 +1,11 @@
 <launch>
+  <arg name="test_pythonpath" default="$(env PYTHONPATH)" />
+  <arg name="pytest_args" default="" />
+  <arg name="test_name" default="test_health_status" />
     <!-- <include file="$(find messages)/../configurations/environment/patient.launch"/> APPLICATION -->
     <node name="patient_data_service" pkg="component" type="patient_data_service" output="log" />
-    <include file="$(find component)/test/patient.launch" />  
-  
+    <include file="$(find component)/test/patient.launch" />
+
     <!-- <include file="$(find component)/test/patient_data_service.launch" />   -->
 
     <include file="$(find messages)/../configurations/target_system/test_probe.launch" />  <!-- APPLICATION -->
@@ -16,5 +19,7 @@
     <include file="$(find messages)/../configurations/target_system/test_g3t1_5.launch" /> <!-- APPLICATION -->
     <include file="$(find messages)/../configurations/target_system/test_g3t1_6.launch" /> <!-- APPLICATION -->
   <param name="test_module" value="$(find component)/test/test_bdd/test_health_status.py"/>
-  <test test-name="test_health_status" pkg="ros_pytest" type="ros_pytest_runner" time-limit="120.0" />
+  <test test-name="$(arg test_name)" pkg="ros_pytest" type="ros_pytest_runner" args="$(arg pytest_args)" time-limit="600.0" >
+    <env name="PYTHONPATH" value="$(arg test_pythonpath):$(find ros_pytest)/src:$(env PYTHONPATH)" />
+  </test>
 </launch>

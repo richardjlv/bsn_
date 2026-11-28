@@ -3,6 +3,8 @@ from test_sensor_connected import ConnectedSensorTestMixin
 
 class TestG3T1_4ConnectedSensor(ConnectedSensorTestMixin):
     __test__ = True
+    # These sensors use PatientData even with connect_sensor=true.
+    uses_patient_service = True
     topic = "abps_data"
     connected_service_name = "abps"
     expected_vital_sign = "abps"

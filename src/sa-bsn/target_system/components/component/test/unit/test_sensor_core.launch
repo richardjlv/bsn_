@@ -1,10 +1,16 @@
 <launch>
-    <include file="$(find component)/test/patient.launch" />
+  <arg name="test_pythonpath" default="$(env PYTHONPATH)" />
+  <include file="$(find component)/test/patient_parameters.launch" />
+  <arg name="pytest_args" default="" />
+  <arg name="test_name" default="test_sensor_core" />
+
 
     <include file="$(find messages)/../configurations/target_system/test_probe.launch" />
     <include file="$(find messages)/../configurations/target_system/test_effector.launch" />
     <include file="$(find messages)/../configurations/target_system/test_g3t1_1.launch" />
 
     <param name="test_module" value="$(find component)/test/unit/test_sensor_core.py"/>
-    <test test-name="test_sensor_core" pkg="ros_pytest" type="ros_pytest_runner" />
+    <test test-name="$(arg test_name)" pkg="ros_pytest" type="ros_pytest_runner" args="$(arg pytest_args)" time-limit="120.0" >
+    <env name="PYTHONPATH" value="$(arg test_pythonpath):$(find ros_pytest)/src:$(env PYTHONPATH)" />
+  </test>
 </launch>

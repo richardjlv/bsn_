@@ -28,29 +28,25 @@ class TestEnactorReliability:
     def setup_method(self):
         self.bsn.reset()
 
-    def test_component_at_its_reliability_reference_is_still_adapted(self):
-        """Pins ROS1's stability-margin behavior: it tests `error > margin*r_ref || error < margin*r_ref` (Controller.cpp), true for
-        almost any error, so even error = 0 publishes a no-op new_freq = 10; the ROS2 port's `abs(error) > threshold` publishes
-        nothing. It also proves the launch is on the reliability path (the same stimulus on the cost path publishes nothing)."""
+    def test_component_at_its_reliability_reference_is_not_adapted(self):
+        """Error zero is within the corrected reliability margin and must not trigger adaptation."""
         component = "/test_reli_reference_component"
         self.bsn.activate(component, 10.0)
         self.bsn.publish_status(component, "success")
 
-        assert self.bsn.wait_for_command(component), (
-            "Expected the no-op AdaptationCommand ROS1's stability-margin "
-            "check lets through for {}, got: {}".format(
-                component, [(m.target, m.action) for m in self.bsn.log_adapt_messages]
+        assert self.bsn.wait_for_exception(component + "=-1"), (
+            "Expected in-tolerance feedback for {} to confirm the control "
+            "loop evaluated the component, got: {}".format(
+                component, [m.content for m in self.bsn.exception_messages]
             )
         )
-        freqs = self.bsn.freqs_for(component)
-        assert abs(freqs[0] - 10.0) < 0.01, (
-            "Expected freq=10.000000 (unchanged: 10 + (150/100)*0), "
-            "got: {}".format(freqs)
+        assert not self.bsn.wait_for_command(component, timeout=10 * CYCLE), (
+            "A component at its reliability reference must not be adapted, "
+            "got: {}".format(self.bsn.commands_for(component))
         )
 
     def test_reliability_below_reference_raises_the_frequency(self):
-        """One success and one failure give reliability 0.5, so error = +0.5 and freq rises by 0.75 to 10.75. Asserts "some command
-        was freq=10.75", not the first, since earlier no-op commands are published with new_freq == freq (10.0)."""
+        """One success and one failure give reliability 0.5: 10 + 1.5*(1 - 0.5) = 10.75 Hz."""
         component = "/test_reli_drop_component"
         self.bsn.activate(component, 10.0)
         self.bsn.publish_status(component, "success")
@@ -99,10 +95,11 @@ class TestEnactorReliability:
         component = "/test_reli_deactivate_component"
         self.bsn.activate(component, 10.0)
         self.bsn.publish_status(component, "success")
-        assert self.bsn.wait_for_command(component), (
-            "Precondition failed: the component was never adapted while "
-            "active, so this test cannot tell deactivation apart from a "
-            "silent pipeline"
+        self.bsn.publish_status(component, "fail")
+        assert self.bsn.wait_for_freq(component, 10.75), (
+            "Expected adaptation to 10.75 Hz before deactivation "
+            "(10 + 1.5*(1 - 0.5)), got: {}".format(
+                self.bsn.commands_for(component))
         )
 
         self.bsn.deactivate(component)

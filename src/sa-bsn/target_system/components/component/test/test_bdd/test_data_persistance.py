@@ -1,3 +1,7 @@
+import threading
+import time
+import uuid
+from archlib.msg import Status, Persist
 import ros_pytest
 import pytest
 from pytest_bdd import given, when, then, parsers, scenario
@@ -21,8 +25,8 @@ PERSISTENCE_NODES = [
 # Individual @scenario per test (not bulk scenarios()) so @pytest.mark.xfail can attach to a collected item;
 # same style as bsn_ros2's test_data_persistance.py and test_injector.py.
 
-@scenario(FEATURE_FILE, "A vital sign reading collected by a sensor is persisted in the knowledge repository (BSN-P08)")
-def test_reading_persisted_in_knowledge_repository():
+@scenario(FEATURE_FILE, "A marked sensor status reaches the persistence channel (BSN-P08 observation)")
+def test_sensor_status_forwarded_to_persistence_channel():
     pass
 
 
@@ -41,11 +45,6 @@ def test_persistence_failure_recorded():
 
 def node_is_online():
     node_is_active(PERSISTENCE_NODES)
-
-def step_then_data_persisted(context):
-    """Simulate data persistence."""
-    assert 'Status' in context['non_sensor']['/persist']['type'], 'Data was not sent to collector, so it cannot be persisted.'
-
 
 def step_then_system_logs_failure(context):
     """Ensure the system logs a persistence failure identifying the reading that failed (what the Gherkin asks for).
@@ -71,9 +70,67 @@ def step_given_knowledge_repository_storage_failures(context):
     context['simulate_persistence_failure'] = True
 
 
-@then('that reading should be retrievable from the knowledge repository with the value reported')
-def step_then_reading_retrievable_from_knowledge_repository(context):
-    step_then_data_persisted(context)
+@pytest.fixture
+def persistence_probe():
+    if not rospy.core.is_initialized():
+        rospy.init_node('bdd_persistence', anonymous=True)
+    probe = {'records': [], 'lock': threading.Lock()}
+
+    def receive(msg):
+        with probe['lock']:
+            probe['records'].append(msg)
+
+    sub = rospy.Subscriber('/persist', Persist, receive, queue_size=100)
+    pub = rospy.Publisher('/log_status', Status, queue_size=10)
+    probe['publisher'] = pub
+    try:
+        deadline = time.time() + 10.0
+        while time.time() < deadline:
+            if pub.get_num_connections() and sub.get_num_connections():
+                break
+            time.sleep(0.05)
+        assert pub.get_num_connections(), 'Logger status input not connected'
+        assert sub.get_num_connections(), 'Persistence output not connected'
+        yield probe
+    finally:
+        pub.unregister()
+        sub.unregister()
+
+
+@given('the logger persistence channel is ready for a controlled sensor status')
+def persistence_ready(persistence_probe):
+    pass
+
+
+@when('a uniquely marked thermometer status is sent to the logger')
+def send_marked_status(persistence_probe):
+    msg = Status()
+    msg.source = '/g3t1_3'
+    msg.target = '/bdd06/' + uuid.uuid4().hex
+    msg.content = 'success'
+    persistence_probe['expected'] = msg
+    persistence_probe['publisher'].publish(msg)
+
+
+def matches_status(record, expected):
+    return (record.type == 'Status' and record.source == expected.source
+            and record.target == expected.target and record.content == expected.content)
+
+
+@then('a corresponding Status record with the same source target and content reaches persist')
+def status_reaches_persist(persistence_probe):
+    expected = persistence_probe['expected']
+    deadline = time.time() + 10.0
+    while time.time() < deadline:
+        with persistence_probe['lock']:
+            records = list(persistence_probe['records'])
+        if any(matches_status(record, expected) for record in records):
+            return
+        time.sleep(0.01)
+    raise AssertionError('No matching Status on /persist for source={} target={}; records={}'.format(
+        expected.source, expected.target,
+        [(r.type, r.source, r.target, r.content) for r in records]))
+
 
 @then('a persistence failure record identifying that reading should be available in the system log')
 def step_then_persistence_failure_record_available(context):

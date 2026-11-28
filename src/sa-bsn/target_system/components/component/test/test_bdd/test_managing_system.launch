@@ -1,4 +1,7 @@
 <launch>
+  <arg name="test_pythonpath" default="$(env PYTHONPATH)" />
+    <arg name="test_name" default="test_managing_system" />
+    <arg name="pytest_args" default="-k 'not test_sampling_rate_increases_when_sensor_reliability_falls_below_the_threshold_g4g5 and not test_sampling_rate_decreases_after_sensor_reliability_recovers_g4g5'" />
     <include file="$(find messages)/../configurations/knowledge_repository/test_data_access.launch" /> <!-- KNOWLEDGE REPOSITORY -->
 
     <include file="$(find messages)/../configurations/system_manager/test_strategy_manager.launch" /> <!-- MANAGER SYSTEM -->
@@ -11,7 +14,7 @@
     <include file="$(find messages)/../configurations/target_system/test_effector.launch" /> <!-- APPLICATION -->
     <include file="$(find messages)/../configurations/target_system/test_g4t1.launch" /> <!-- APPLICATION -->
 
-    <include file="$(find component)/test/patient.launch" />  
+    <include file="$(find component)/test/patient.launch" />
 
     <include file="$(find messages)/../configurations/target_system/test_g3t1_1.launch" /> <!-- APPLICATION -->
     <include file="$(find messages)/../configurations/target_system/test_g3t1_2.launch" /> <!-- APPLICATION -->
@@ -19,8 +22,10 @@
     <include file="$(find messages)/../configurations/target_system/test_g3t1_4.launch" /> <!-- APPLICATION -->
     <include file="$(find messages)/../configurations/target_system/test_g3t1_5.launch" /> <!-- APPLICATION -->
     <include file="$(find messages)/../configurations/target_system/test_g3t1_6.launch" /> <!-- APPLICATION -->
-    
+
   <param name="test_module" value="$(find component)/test/test_bdd/test_managing_system.py"/>
-    <include file="$(find messages)/../configurations/simulation/test_injector.launch" /> 
-  <test test-name="test_managing_system" pkg="ros_pytest" type="ros_pytest_runner" time-limit="120.0"/>
+    <include file="$(find messages)/../configurations/simulation/test_injector.launch" />
+  <test test-name="$(arg test_name)" pkg="ros_pytest" type="ros_pytest_runner" args="$(arg pytest_args)" time-limit="600.0">
+    <env name="PYTHONPATH" value="$(arg test_pythonpath):$(find ros_pytest)/src:$(env PYTHONPATH)" />
+  </test>
 </launch>

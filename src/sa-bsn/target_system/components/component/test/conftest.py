@@ -13,7 +13,7 @@ FULL_SYSTEM = ['/collector', '/param_adapter',
 SENSORS = ['/g3t1_1', '/g3t1_2', '/g3t1_3', 
                '/g3t1_4', '/g3t1_5', '/g3t1_6']
 
-@pytest.fixture(scope='module')
+@pytest.fixture
 def context():
     """
     Fixture to hold context data for BDD tests.
@@ -32,12 +32,15 @@ def ros_environment_is_on():
 @given(parsers.parse("{node_name} is running"))
 @given(parsers.parse("the {node_name} node is online")) # remover
 def node_is_online(context, node_name):
+    _assert_node_online(context, node_name)
+
+def _assert_node_online(context, node_name):
     assert_node_is_online(SYSTEM_MAP[node_name])
     context['is_node_online'] = True
 
 @given("<sensor> is running")
 def sensor_is_running(context, sensor):
-    node_is_online(context, sensor)
+    _assert_node_online(context, sensor)
 
 @when(parsers.parse("I check if topics {topic} are outbound to {node}")) # remover
 def check_topic_outbound_to_node(context, topic, node):

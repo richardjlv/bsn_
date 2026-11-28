@@ -1,0 +1,8 @@
+<launch>
+  <arg name="test_pythonpath" default="$(env PYTHONPATH)" />
+  <include file="$(find component)/test/test_bdd/test_managing_system.launch">
+    <arg name="test_pythonpath" value="$(arg test_pythonpath)" />
+    <arg name="test_name" value="test_managing_system_bdd18" />
+    <arg name="pytest_args" value="-k test_sampling_rate_decreases_after_sensor_reliability_recovers_g4g5" />
+  </include>
+</launch>
