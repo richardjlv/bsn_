@@ -1,4 +1,3 @@
-# Propriedades e resultados: src/tg/apendices/apendice_b_propriedades_bdd.md
 Feature: ensure simulation components communicate properly
 
 	# Scenario: Ensure the data is being injected into nodes /logger, /g3t1_6, /g3t1_5, /g3t1_4, /g3t1_3, /g3t1_2, /g3t1_1
@@ -7,11 +6,10 @@ Feature: ensure simulation components communicate properly
 	# 	Then /injector node is connected appropriately
 
 	@topology @contract
-	# Rastreabilidade BDD10: BSN-C05. Contrato estrutural complementar.
 	Scenario Outline: The uncertainty injector is wired to each body sensor
 		Given the uncertainty injector is running
 		Then the uncertainty injector should publish "uncertainty injection" to <sensor>
-		
+
 		Examples:
 			| sensor          |
 			| the oximeter    |
@@ -20,10 +18,9 @@ Feature: ensure simulation components communicate properly
 			| the SBP sensor  |
 			| the DBP sensor  |
 			| the glucometer  |
-	
-	
+
+
 	@topology @contract
-	# Rastreabilidade BDD11: BSN-C05. Contrato estrutural complementar.
 	Scenario: The uncertainty injector is wired to the system log
 		Given the uncertainty injector is running
 		Then the uncertainty injector should publish "uncertainty log" to the system log

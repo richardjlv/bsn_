@@ -201,3 +201,6 @@ Sensor unit tests provide their own patient service without a competing real
 patient node. BDD20 requires new adaptation commands in two successive waits
 of up to five seconds; it does not verify sensor frequency application.
 BDD17 and BDD18 also measure the actual sensor publication rate.
+
+TG notes and historical traceability are maintained in the [thesis repository](https://github.com/richardjlv/bsn_docs), under `src/tg/revisoes/`.
+BDD06 checks controlled status forwarding to `/persist`; it does not establish storage or retrieval of a vital-sign reading.
