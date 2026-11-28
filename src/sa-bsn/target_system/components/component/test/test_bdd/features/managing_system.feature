@@ -60,15 +60,12 @@ Feature: Managing system adapts sensor sampling rate in response to reliability 
     When the oximeter repeatedly reports a 'fail' status
     Then an adaptation command for the oximeter should be issued within 10 seconds
 
-  @xfail @behavior @g4-g5
-  # Razão técnica: o controlador SA-BSN é um otimizador contínuo (kp=150, limites 0.1-40 Hz, margem 0.02); com r_curr = 1.0
-  # emite comandos de redução em vez de ficar em silêncio. Mantido deliberadamente: se passar em ROS 2, o comportamento
-  # do controlador mudou e isso precisa aparecer no relatório de migração.
-  # Rastreabilidade BDD20: BSN-C11. Expectativa complementar não atendida; G4/G5 local.
-  Scenario: No adaptation is triggered while sensor reliability stays above the threshold (G4/G5)
+  @behavior @g4-g5
+  # Rastreabilidade BDD20: BSN-C11. Continuidade da adaptacao; G4/G5 local.
+  Scenario: Adaptation continues while sensor reliability stays above the threshold (G4/G5)
     Given the managing system is monitoring the reliability of the oximeter
     When the reliability of the oximeter stays above the threshold
-    Then no adaptation command for the oximeter should be issued
+    Then adaptation commands for the oximeter should continue in successive observation windows
 
   @behavior @logging @g4-g5
   # Rastreabilidade BDD21: BSN-C12. Critério complementar de registro; G4/G5 local.

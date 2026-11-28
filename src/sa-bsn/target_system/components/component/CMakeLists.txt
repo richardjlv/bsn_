@@ -85,44 +85,70 @@ if (CATKIN_ENABLE_TESTING)
     message(STATUS "Coverage LLVM desabilitado: compilador nao eh Clang")
   endif()
 
-  find_package(rostest REQUIRED)
-  find_package(ros_pytest REQUIRED)
+  find_package(ros_pytest QUIET)
+  if(ros_pytest_FOUND)
+    find_package(rostest REQUIRED)
 
-  add_rostest(test/test_bdd/test_BSN-P03.launch)
-  add_rostest(test/test_bdd/test_health_status.launch)
-  add_rostest(test/test_bdd/test_check_bsn.launch)
-  add_rostest(test/test_bdd/test_data_persistance.launch)
-  add_rostest(test/test_bdd/test_injector.launch)
-  add_rostest(test/test_bdd/test_knowledge_repo.launch)
-  add_rostest(test/test_bdd/test_managing_system.launch)
+    add_rostest(test/test_bdd/test_BSN-P03.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/test_bdd/test_health_status.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/test_bdd/test_check_bsn.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/test_bdd/test_data_persistance.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/test_bdd/test_injector.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/test_bdd/test_knowledge_repo.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/test_bdd/test_managing_system.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/test_bdd/test_managing_system_bdd17.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/test_bdd/test_managing_system_bdd18.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
 
-  add_rostest(test/test_bdd/test_target_system.launch)
-  
-  # unit test
-  add_rostest(test/unit/test_G3T1_1.launch)
-  add_rostest(test/unit/test_G3T1_2.launch)
-  add_rostest(test/unit/test_G3T1_3.launch)
-  add_rostest(test/unit/test_G3T1_4.launch)
-  add_rostest(test/unit/test_G3T1_5.launch)
-  add_rostest(test/unit/test_G3T1_6.launch)
+    add_rostest(test/test_bdd/test_target_system.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
 
-  add_rostest(test/unit/test_G3T1_1_connected.launch)
-  add_rostest(test/unit/test_G3T1_2_connected.launch)
-  add_rostest(test/unit/test_G3T1_3_connected.launch)
-  add_rostest(test/unit/test_G3T1_4_connected.launch)
-  add_rostest(test/unit/test_G3T1_5_connected.launch)
-  add_rostest(test/unit/test_G3T1_6_connected.launch)
-  
-  add_rostest(test/unit/test_G4T1.launch)
-  add_rostest(test/unit/test_sensor_core.launch)
+    # unit test
+    add_rostest(test/unit/test_G3T1_1.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/unit/test_G3T1_2.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/unit/test_G3T1_3.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/unit/test_G3T1_4.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/unit/test_G3T1_5.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/unit/test_G3T1_6.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
 
+    add_rostest(test/unit/test_G3T1_1_connected.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/unit/test_G3T1_2_connected.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/unit/test_G3T1_3_connected.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/unit/test_G3T1_4_connected.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/unit/test_G3T1_5_connected.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/unit/test_G3T1_6_connected.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+
+    add_rostest(test/unit/test_G4T1.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+    add_rostest(test/unit/test_sensor_core.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+
+  else()
+    message(STATUS "ros_pytest absent: skipping Python ROS tests; see README.md")
+  endif()
 endif()
 
 
-#if(CATKIN_ENABLE_TESTING)
-#    catkin_add_nosetests(test/integration/test_my_cpp_node.py)
-#    catkin_add_nosetests(test/bdd/behave_config.py)
-#endif()
 
 ###########################################################################
 # Install this project (if needed)

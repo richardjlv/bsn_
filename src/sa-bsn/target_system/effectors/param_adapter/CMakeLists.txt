@@ -5,15 +5,14 @@ add_compile_options(-std=c++11)
 
 ###########################################################################
 ## Find catkin and any catkin packages
-FIND_PACKAGE(catkin REQUIRED COMPONENTS 
-    roscpp 
-    std_msgs 
-    genmsg 
-    messages 
-    archlib 
+FIND_PACKAGE(catkin REQUIRED COMPONENTS
+    roscpp
+    std_msgs
+    genmsg
+    messages
+    archlib
     rospy
     std_srvs
-    rostest
     )
 
 ###########################################################################
@@ -43,9 +42,15 @@ ADD_DEPENDENCIES(param_adapter services_generate_messages_cpp)
 ###########################################################################
 # Tests.
 if(CATKIN_ENABLE_TESTING)
-  find_package(ros_pytest REQUIRED)
+  find_package(ros_pytest QUIET)
+  if(ros_pytest_FOUND)
+    find_package(rostest REQUIRED)
 
-  add_rostest(test/unit/test_param_adapter.launch)
+    add_rostest(test/unit/test_param_adapter.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+  else()
+    message(STATUS "ros_pytest absent: skipping Python ROS tests; see README.md")
+  endif()
 endif()
 
 ###########################################################################

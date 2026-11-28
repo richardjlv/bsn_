@@ -1,3 +1,4 @@
+import os
 import subprocess
 from parsers import get_rosnode_info
 import threading

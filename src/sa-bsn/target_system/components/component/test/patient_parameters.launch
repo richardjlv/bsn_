@@ -1,11 +1,11 @@
 <launch> 
     <!-- Blood Oxigenation Measurement Sensor -->    
-    <node name="patient" pkg="patient" type="patient" output="screen" />    
 
     <param name="frequency" value="10" />
 
     <param name="vitalSigns" value="oxigenation, heart_rate, temperature, abps, abpd, glucose" />
-    
+
+    <!-- Frequency for changes in states of each markov in Hertz -->
     <param name="oxigenation_Change" value="0.2"/>
     <param name="heart_rate_Change" value="0.1"/>
     <param name="temperature_Change" value="0.1"/>

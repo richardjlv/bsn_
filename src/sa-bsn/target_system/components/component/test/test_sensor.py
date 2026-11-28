@@ -75,43 +75,46 @@ class SharedSensorTests:
             else:
                 raise
 
-    @classmethod
-    def setup_class(cls):
-        """Initialize ROS node for testing"""          
-        cls.received_messages = []
-        cls.serviceCount = []
-        cls.message_lock = threading.Lock()
-
-        rospy.init_node('node_test')
-        
-        service_name = "getPatientData"
-        cls.patient_service_server = rospy.Service(
-            service_name, 
-            PatientData, 
-            cls.mock_patient_data_service_callback 
-        )
-        rospy.sleep(0.1) 
-        rospy.loginfo("Servico '{}' mockado iniciado para teste.".format(service_name))
-    
-    def setup_method(self):
-        """Setup for each test method"""
+    @pytest.fixture(autouse=True)
+    def sensor_environment(self, request):
+        if not rospy.core.is_initialized():
+            rospy.init_node('node_test', anonymous=True)
+        self.message_lock = threading.Lock()
         self.received_messages = []
-        self.subscriber = rospy.Subscriber(
-            self.topic, 
-            SensorData, 
-            self.message_callback
-        )
-        time.sleep(0.1)  
-    
-    def teardown_method(self):
-        """Cleanup after each test"""
-        self.subscriber.unregister()
-        self.received_messages = []
+        self.service_calls = 0
+        values = low_risk_value_dict
+        for fixture, candidate in (
+                ('mock_high_risk_service', high_risk_value_dict),
+                ('mock_mid_risk_service', mid_risk_value_dict),
+                ('mock_out_of_range_service', out_of_range_value_dict)):
+            if fixture in request.fixturenames:
+                values = candidate
 
-        if self.patient_service_server is not None:
-            self.patient_service_server.shutdown("Testes concluidos.")
-        
-        rospy.loginfo("Servico de mock desligado.")
+        def respond(req):
+            with self.message_lock:
+                self.service_calls += 1
+            response = PatientDataResponse()
+            response.data = values[req.vitalSign]
+            return response
+
+        self.patient_service_server = rospy.Service('getPatientData', PatientData, respond)
+        self.subscriber = rospy.Subscriber(self.topic, SensorData, self.message_callback)
+        try:
+            deadline = time.time() + 10.0
+            while time.time() < deadline:
+                with self.message_lock:
+                    if self.service_calls >= 2:
+                        break
+                rospy.sleep(0.05)
+            assert self.service_calls >= 2, 'Sensor did not call the patient mock twice within 10s'
+            with self.message_lock:
+                self.received_messages[:] = []
+            yield
+        finally:
+            self.subscriber.unregister()
+            if self.patient_service_server is not None:
+                self.patient_service_server.shutdown('Test complete')
+                self.patient_service_server = None
 
     @staticmethod
     def mock_patient_data_service_callback(req):
@@ -125,56 +128,20 @@ class SharedSensorTests:
         res.data = low_risk_value_dict[req.vitalSign]
         return res
 
-    @staticmethod
-    def mock_patient_data_service_with_high_risk_callback(req):
-        """
-        Funcao callback que simula a logica do servidor.
-        Recebe a requisicao (PatientData) e retorna uma Resposta de High Risk (PatientDataResponse).
-        """
-        rospy.loginfo("Servico 'getPatientData' (High risk) chamado no teste: {}".format(req.vitalSign))
-        
-        res = PatientDataResponse()
-        res.data = high_risk_value_dict[req.vitalSign]
-        return res
-    
-    @staticmethod
-    def mock_patient_data_service_with_mid_risk_callback(req):
-        """
-        Funcao callback que simula a logica do servidor.
-        Recebe a requisicao (PatientData) e retorna uma Resposta de Mid Risk (PatientDataResponse).
-        """
-        rospy.loginfo("Servico 'getPatientData' (Mid risk) chamado no teste: {}".format(req.vitalSign))
-        
-        res = PatientDataResponse()
-        res.data = mid_risk_value_dict[req.vitalSign]
-        return res
-
-    @staticmethod
-    def mock_patient_data_service_with_out_of_range_callback(req):
-        """
-        Funcao callback que simula a logica do servidor.
-        Recebe a requisicao (PatientData) e retorna uma Resposta de Out of Range (PatientDataResponse).
-        """
-        rospy.loginfo("Servico 'getPatientData' (Out of range) chamado no teste: {}".format(req.vitalSign))
-        
-        res = PatientDataResponse()
-        res.data = out_of_range_value_dict[req.vitalSign]
-        return res
-
-    
     def message_callback(self, msg):
         """Callback for receiving messages from the sensor"""
         print("Mensagem recebida no topico {}: data={}".format(self.topic, msg.data))
         with self.message_lock:
             self.received_messages.append(msg)
     
-    def wait_for_message(self, timeout=2.0):
+    def wait_for_message(self, timeout=5.0, matcher=None):
         """Wait for a message to be received"""
         start_time = time.time()
         while time.time() - start_time < timeout:
             with self.message_lock:
-                if self.received_messages:
-                    return self.received_messages[-1]
+                for message in reversed(self.received_messages):
+                    if matcher is None or matcher(message):
+                        return message
             time.sleep(0.01)
         return None
 
@@ -195,107 +162,47 @@ class SharedSensorTests:
     def test_transfer_with_low_risk_data(self):
         """Test transfer with low risk data"""
         test_data = low_risk_value_dict[self.vital_sign]
-        received_msg = self.wait_for_message()
-        print("Received message: {}".format(received_msg.risk))
+        received_msg = self.wait_for_message(matcher=lambda msg: msg.data == test_data)
         assert received_msg is not None
         assert received_msg.risk < low_risk_threshold_dict
         assert received_msg.data == test_data
 
     @pytest.fixture
     def mock_high_risk_service(self):
-        """Fixture to setup high risk service mock"""
-        if self.patient_service_server is not None:
-            self.patient_service_server.shutdown("Reconfigurando para high risk.")
-            rospy.sleep(0.1)
-        service_name = "getPatientData"
-        self.patient_service_server = rospy.Service(
-            service_name, 
-            PatientData, 
-            self.mock_patient_data_service_with_high_risk_callback 
-        )
-        rospy.wait_for_service(service_name)
-        rospy.sleep(1)
-
-        self.subscriber = rospy.Subscriber(
-            self.topic, 
-            SensorData, 
-            self.message_callback
-        )
-        print("High risk service mock setup complete.")
-        time.sleep(1)  
-        yield
+        pass
 
     def test_transfer_with_high_risk_data(self, mock_high_risk_service):
         """Test transfer with high risk  data"""
         test_data = high_risk_value_dict[self.vital_sign]
-        received_msg = self.wait_for_message()
-        
+        received_msg = self.wait_for_message(matcher=lambda msg: msg.data == test_data)
+
         assert received_msg is not None
         assert received_msg.risk > high_risk_threshold_dict
         assert received_msg.data == test_data
 
     @pytest.fixture
     def mock_mid_risk_service(self):
-        """Fixture to setup mid risk service mock"""
-        if self.patient_service_server is not None:
-            self.patient_service_server.shutdown("Reconfigurando para mid risk.")
-            rospy.sleep(0.1)
-        service_name = "getPatientData"
-        self.patient_service_server = rospy.Service(
-            service_name, 
-            PatientData, 
-            self.mock_patient_data_service_with_mid_risk_callback 
-        )
-        rospy.wait_for_service(service_name)
-        rospy.sleep(1)
-
-        self.subscriber = rospy.Subscriber(
-            self.topic, 
-            SensorData, 
-            self.message_callback
-        )
-
-        print("Mid risk service mock setup complete.")
-        time.sleep(1)  
-        yield
+        pass
 
     def test_transfer_with_mid_risk_data(self, mock_mid_risk_service):
         """Test transfer with mid risk  data"""
         test_data = mid_risk_value_dict[self.vital_sign]
-        received_msg = self.wait_for_message()
-        print("Received message: {}, {}".format(received_msg.risk, test_data))
+        received_msg = self.wait_for_message(matcher=lambda msg: msg.data == test_data)
         assert received_msg is not None
         assert received_msg.risk > low_risk_threshold_dict and received_msg.risk < high_risk_threshold_dict
         assert received_msg.data == test_data
 
     @pytest.fixture
     def mock_out_of_range_service(self):
-        """Fixture to setup out of range service mock"""
-        if self.patient_service_server is not None:
-            self.patient_service_server.shutdown("Reconfigurando para out of range.")
-            rospy.sleep(0.1)
-        service_name = "getPatientData"
-        self.patient_service_server = rospy.Service(
-            service_name, 
-            PatientData, 
-            self.mock_patient_data_service_with_out_of_range_callback
-        )
-        rospy.wait_for_service(service_name)
-        rospy.sleep(1)
-
-        self.subscriber = rospy.Subscriber(
-            self.topic, 
-            SensorData, 
-            self.message_callback
-        )
-        print("Out of range service mock setup complete.")
-        time.sleep(1)  
-        yield
+        pass
 
     def test_transfer_with_out_of_range_data(self, mock_out_of_range_service):
         """Test transfer with out of range data"""
+        calls_before = self.service_calls
         received_msg = self.wait_for_message()
         assert received_msg is None
+        assert self.service_calls > calls_before, "Sensor stopped requesting out-of-range input"
+        assert "/" + self.node_name in rosnode.get_node_names(), "Sensor exited during the observation"
 
     def test_transfer_with_accuracy_fail(self, mock_mid_risk_service):
         """Test transfer with accuracy fail (label mismatch)"""
@@ -356,17 +263,9 @@ class SharedSensorTests:
         
         # Wait for next message
         time.sleep(0.5)
-        del self.received_messages[:]
+        with self.message_lock:
+            del self.received_messages[:]
         received_msg2 = self.wait_for_message()
         
-        if received_msg2 is not None:
-            # Battery should decrease or stay same (if instant recharge)
-            assert received_msg2.batt <= initial_battery
-
-    # def test_service_integration(self):
-    #     """Test that sensor properly integrates with patient data service"""
-    #     received_msg = self.wait_for_message(timeout=3.0)
-        
-    #     assert received_msg is not None
-    #     # Data should come from the mocked service
-    #     assert received_msg.data == low_risk_value_dict[self.vital_sign]
+        assert received_msg2 is not None, "No second sample for battery comparison"
+        assert received_msg2.batt <= initial_battery

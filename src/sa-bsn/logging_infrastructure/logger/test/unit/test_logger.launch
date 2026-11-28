@@ -1,7 +1,12 @@
 <launch>
+  <arg name="test_pythonpath" default="$(env PYTHONPATH)" />
+  <arg name="pytest_args" default="" />
+  <arg name="test_name" default="test_logger" />
     <node name="logger" pkg="logging_infrastructure" type="logger" output="log" />
     <param name="frequency" value="10" />
 
     <param name="test_module" value="$(find logging_infrastructure)/test/unit/test_logger.py"/>
-    <test test-name="test_logger" pkg="ros_pytest" type="ros_pytest_runner" />
+    <test test-name="$(arg test_name)" pkg="ros_pytest" type="ros_pytest_runner" args="$(arg pytest_args)" time-limit="120.0" >
+    <env name="PYTHONPATH" value="$(arg test_pythonpath):$(find ros_pytest)/src:$(env PYTHONPATH)" />
+  </test>
 </launch>

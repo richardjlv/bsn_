@@ -97,6 +97,7 @@ BUILD_CMAKE_ARGS=(
     "-DCATKIN_DEVEL_PREFIX=$WORKSPACE_DIR/devel"
     "-DCMAKE_INSTALL_PREFIX=$WORKSPACE_DIR/install"
     "-DCATKIN_ENABLE_TESTING=ON"
+    "-DCATKIN_TEST_RESULTS_DIR=$WORKSPACE_DIR/build/test_results"
     "-DCMAKE_CXX_FLAGS=-fprofile-instr-generate -fcoverage-mapping -O0 -fno-inline"
     "-DCMAKE_EXE_LINKER_FLAGS=-fprofile-instr-generate -fcoverage-mapping"
     "-DCMAKE_SHARED_LINKER_FLAGS=-fprofile-instr-generate -fcoverage-mapping"
@@ -174,9 +175,12 @@ if [ -z "$CATKIN_PYTHON" ]; then
     echo "❌ PYTHON_EXECUTABLE não encontrado no cache CMake." >&2
     exit 1
 fi
+PYTHON_VERSION=$("$CATKIN_PYTHON" -c 'import sys; print("%s.%s" % sys.version_info[:2])') || exit 1
+WORKSPACE_PYTHON="$WORKSPACE_DIR/devel/lib/python$PYTHON_VERSION/dist-packages"
+export PYTHONPATH="$WORKSPACE_PYTHON:$PYTHONPATH"
 for interpreter in "$RUNNER_PYTHON" "$CATKIN_PYTHON"; do
     if ! run_logged "$LOG_DIR/python_import_$(basename "$interpreter").log" \
-        "$interpreter" -c 'import sys; print("Python: " + sys.executable); from ros_pytest import run_pytest; import ros_pytest, pytest, rospy, pytest_bdd; print("ros_pytest: " + ros_pytest.__file__)'; then
+        "$interpreter" -c 'import sys; print("Python: " + sys.executable); from ros_pytest import run_pytest; import ros_pytest, pytest, rospy, pytest_bdd; import archlib.msg, archlib.srv, messages.msg, services.srv; print("ros_pytest: " + ros_pytest.__file__); print("archlib.msg: " + archlib.msg.__file__)'; then
         echo "❌ Importação das dependências de teste falhou em $interpreter. Nenhum teste foi iniciado." >&2
         exit 1
     fi
@@ -198,7 +202,7 @@ mkdir -p build/test_results || exit 1
 # parte que diz quais rostest efetivamente rodaram) - manda pra cá qualquer
 # arquivo de $LOG_DIR se algo não bater com o esperado.
 echo "🚀 Executando testes..."
-run_logged "$LOG_DIR/test_output.log" catkin_make run_tests "${BUILD_CMAKE_ARGS[@]}"
+run_logged "$LOG_DIR/test_output.log" catkin_make run_tests -j1 "${BUILD_CMAKE_ARGS[@]}"
 TEST_EXIT_CODE=$COMMAND_EXIT_CODE
 if [ "$LOG_EXIT_CODE" -ne 0 ]; then
     exit 1

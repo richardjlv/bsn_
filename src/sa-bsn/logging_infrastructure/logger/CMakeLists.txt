@@ -34,8 +34,13 @@ ADD_DEPENDENCIES(logger messages_generate_messages_cpp)
 ###########################################################################
 # Tests.
 if(CATKIN_ENABLE_TESTING)
-  find_package(rostest REQUIRED)
-  find_package(ros_pytest REQUIRED)
+  find_package(ros_pytest QUIET)
+  if(ros_pytest_FOUND)
+    find_package(rostest REQUIRED)
 
-  add_rostest(test/unit/test_logger.launch)
+    add_rostest(test/unit/test_logger.launch
+      ARGS "test_pythonpath:=${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION}")
+  else()
+    message(STATUS "ros_pytest absent: skipping Python ROS tests; see README.md")
+  endif()
 endif()

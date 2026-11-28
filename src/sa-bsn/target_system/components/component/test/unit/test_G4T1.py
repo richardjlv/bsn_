@@ -68,12 +68,19 @@ class TestG4T1:
             queue_size=10
         )
         
-        time.sleep(0.5)  # Wait for connections to establish
+        deadline = time.time() + 10.0
+        while time.time() < deadline:
+            if all(pub.get_num_connections() for pub in self.sensors_pub.values()):
+                break
+            time.sleep(0.05)
+        assert all(pub.get_num_connections() for pub in self.sensors_pub.values()), "Hub input connections not ready"
         
     def teardown_method(self):
         """Cleanup after each test"""
         self.subscriber.unregister()
         self.sensor_pub.unregister()
+        for publisher in self.sensors_pub.values():
+            publisher.unregister()
         
         # Clear with lock to ensure thread-safety
         with self.message_lock:
@@ -84,7 +91,7 @@ class TestG4T1:
         with self.message_lock:
             self.received_messages.append(msg)
             
-    def wait_for_message(self, timeout=3.0, clear_old=True):
+    def wait_for_message(self, timeout=3.0, clear_old=True, matcher=None):
         """Wait for a message to be received
         
         Args:
@@ -99,8 +106,9 @@ class TestG4T1:
         start_time = time.time()
         while time.time() - start_time < timeout:
             with self.message_lock:
-                if self.received_messages:
-                    return self.received_messages[-1]
+                for message in reversed(self.received_messages):
+                    if matcher is None or matcher(message):
+                        return message
             time.sleep(0.01)
         return None
     
@@ -294,12 +302,14 @@ class TestG4T1:
         """Test that sensor data is updated sequentially"""
         # First update
         self.publish_sensor_data('thermometer', 10.0, 36.5, 95.0)
-        msg1 = self.wait_for_message()
+        msg1 = self.wait_for_message(clear_old=False, matcher=lambda msg: msg.trm_risk == 10.0)
+        assert msg1 is not None, "First thermometer update was not received"
         assert msg1.trm_risk == 10.0
         
         # Second update with different value
         self.received_messages = []
         self.publish_sensor_data('thermometer', 30.0, 38.0, 90.0)
-        msg2 = self.wait_for_message()
+        msg2 = self.wait_for_message(clear_old=False, matcher=lambda msg: msg.trm_risk == 30.0 and msg.trm_data == 38.0)
+        assert msg2 is not None, "Second thermometer update was not received"
         assert msg2.trm_risk == 30.0
         assert msg2.trm_data == 38.0

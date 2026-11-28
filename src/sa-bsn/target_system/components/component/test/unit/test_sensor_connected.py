@@ -7,6 +7,7 @@ import rospy
 from std_srvs.srv import SetBool, SetBoolResponse
 
 from messages.msg import SensorData
+from services.srv import PatientData, PatientDataResponse
 from test_sensor import low_risk_value_dict
 
 
@@ -17,6 +18,7 @@ class ConnectedSensorTestMixin(object):
 
     topic = None
     connected_service_name = None
+    uses_patient_service = False
     expected_vital_sign = None
     expect_connected_value = True
     expect_unknown_label_in_connected = False
@@ -48,7 +50,8 @@ class ConnectedSensorTestMixin(object):
             if cls.connected_service is not None:
                 return
             cls.connected_service = rospy.Service(
-                cls.connected_service_name, SetBool, cls._connected_callback
+                "getPatientData" if cls.uses_patient_service else cls.connected_service_name,
+                PatientData if cls.uses_patient_service else SetBool, cls._connected_callback
             )
 
     @classmethod
@@ -64,12 +67,24 @@ class ConnectedSensorTestMixin(object):
 
     @classmethod
     def _connected_callback(cls, _req):
+        if cls.uses_patient_service:
+            assert _req.vitalSign == cls.expected_vital_sign
+            response = PatientDataResponse()
+            response.data = cls.test_value
+            return response
         return SetBoolResponse(success=True, message=str(cls.test_value))
+
+    @classmethod
+    def teardown_class(cls):
+        cls._stop_connected_service()
 
     def setup_method(self):
         self.received_messages = []
         self.subscriber = rospy.Subscriber(self.topic, SensorData, self._message_callback)
-        time.sleep(0.2)
+        message = self._wait_for_message_value(self.test_value, timeout=10.0)
+        assert message is not None, "Sensor did not consume its configured input service"
+        with self.message_lock:
+            self.received_messages[:] = []
 
     def teardown_method(self):
         self.subscriber.unregister()
