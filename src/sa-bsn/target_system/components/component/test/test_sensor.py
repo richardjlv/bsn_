@@ -230,31 +230,45 @@ class SharedSensorTests:
             rospy.Publisher(topic, Uncertainty, queue_size=10)
             for topic in uncertainty_topics
         ]
-        time.sleep(0.2)
-
         uncertainty_msg = Uncertainty()
         uncertainty_msg.source = "test"
         uncertainty_msg.target = self.node_name
-        uncertainty_msg.content = "noise_factor=0.3"
+        # Glucose 100 +/- 20..40 crosses the moderate-risk band in both directions.
+        factor = 0.2 if self.vital_sign == "glucose" else 0.3
+        uncertainty_msg.content = "noise_factor={}".format(factor)
 
-        for _ in range(3):
-            for publisher in uncertainty_pubs:
+        try:
+            deadline = time.time() + 5.0
+            while time.time() < deadline:
+                if (any(pub.get_num_connections() for pub in uncertainty_pubs)
+                        and status_subscriber.get_num_connections()):
+                    break
+                time.sleep(0.05)
+            connected = [pub for pub in uncertainty_pubs if pub.get_num_connections()]
+            assert connected, "No sensor subscriber connected to uncertainty input"
+            assert status_subscriber.get_num_connections(), "Status stream not connected"
+            with status_lock:
+                del status_messages[:]
+            for publisher in connected:
                 publisher.publish(uncertainty_msg)
+
+            status_msg = self.wait_for_status(
+                status_messages, status_lock, timeout=6.0,
+                matcher=lambda msg: msg.source.endswith(self.node_name) and msg.content == "fail"
+            )
+            with status_lock:
+                observed = [(msg.source, msg.content) for msg in status_messages]
+            assert status_msg is not None, "No fail after noise_factor={}; statuses={}".format(factor, observed)
+        finally:
+            uncertainty_msg.content = "noise_factor=0"
+            for publisher in uncertainty_pubs:
+                if publisher.get_num_connections():
+                    publisher.publish(uncertainty_msg)
             time.sleep(0.2)
+            for publisher in uncertainty_pubs:
+                publisher.unregister()
+            status_subscriber.unregister()
 
-        status_msg = self.wait_for_status(
-            status_messages,
-            status_lock,
-            timeout=6.0,
-            matcher=lambda msg: msg.source.endswith(self.node_name) and msg.content == "fail"
-        )
-        status_subscriber.unregister()
-
-        assert status_msg is not None
-        assert status_msg.source.endswith(self.node_name)
-        assert status_msg.content == "fail"
-
-        
     def test_battery_consumption(self, mock_mid_risk_service):
         """Test that battery level decreases after operations"""
         received_msg1 = self.wait_for_message()
